@@ -1,0 +1,45 @@
+pipeline {
+    agent any
+
+    triggers {
+        // every 5 minutes on Mondays
+        cron('H/5 * * * 1')
+    }
+
+    stages {
+
+        stage('Checkout') {
+            steps {
+                git branch: 'main', url: 'https://github.com/3th34-Byte/spring-petclinic.git'
+            }
+        }
+
+        stage('Build') {
+            steps {
+                bat './mvnw.cmd clean package -DskipTests'
+            }
+        }
+
+        stage('Test & Jacoco') {
+            steps {
+                bat './mvnw.cmd test jacoco:report'
+            }
+        }
+
+        stage('Publish Jacoco') {
+            steps {
+                jacoco(
+                    execPattern: '**/target/jacoco.exec',
+                    classPattern: '**/target/classes',
+                    sourcePattern: '**/src/main/java'
+                )
+            }
+        }
+    }
+
+    post {
+        success {
+            archiveArtifacts artifacts: '**/target/*.jar', fingerprint: true
+        }
+    }
+}
